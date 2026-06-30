@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-REPO="kunchenguid/no-mistakes"
+REPO="hemanthmantri/no-mistakes"
 INSTALL_DIR="${NO_MISTAKES_INSTALL_DIR:-$HOME/.no-mistakes/bin}"
 LINK_DIR="${NO_MISTAKES_LINK_DIR:-}"
 
@@ -29,11 +29,7 @@ case "$ARCH" in
   *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
-if [ -z "$VERSION" ]; then
-  echo "Could not determine latest release"
-  exit 1
-fi
+VERSION="${NO_MISTAKES_VERSION:-harness-support}"
 
 FILENAME="no-mistakes-${VERSION}-${OS}-${ARCH}.tar.gz"
 URL="https://github.com/${REPO}/releases/download/${VERSION}/${FILENAME}"

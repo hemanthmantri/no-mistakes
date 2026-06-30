@@ -63,7 +63,7 @@ Nothing reaches the configured push target until every check is green.
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/kunchenguid/no-mistakes/main/docs/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/hemanthmantri/no-mistakes/main/docs/install.sh | sh
 ```
 
 Windows, Go install, and build-from-source instructions are in the [installation guide](https://kunchenguid.github.io/no-mistakes/start-here/installation/).
