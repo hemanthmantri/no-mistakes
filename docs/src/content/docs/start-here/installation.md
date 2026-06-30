@@ -52,6 +52,7 @@ make install
   - `gh` CLI (GitHub)
   - `glab` CLI (GitLab)
   - `NO_MISTAKES_BITBUCKET_EMAIL` and `NO_MISTAKES_BITBUCKET_API_TOKEN` (Bitbucket Cloud)
+  - `harness` CLI or `HARNESS_API_KEY` (Harness Code)
 
 Run `no-mistakes doctor` to check native agents and provider tools.
 For ACP agents, verify `acpx` or `acpx_path` separately because `doctor` does not validate ACP targets.

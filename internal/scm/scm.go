@@ -16,8 +16,13 @@ const (
 	ProviderGitHub    Provider = "github"
 	ProviderGitLab    Provider = "gitlab"
 	ProviderBitbucket Provider = "bitbucket"
+	ProviderHarness   Provider = "harness"
 	ProviderUnknown   Provider = "unknown"
 )
+
+// HarnessHostEnv lets self-hosted Harness installs override the detected host.
+// When set, any URL whose hostname matches is classified as Harness Code.
+const HarnessHostEnv = "HARNESS_HOST"
 
 func DetectProvider(url string) Provider {
 	lower := strings.ToLower(url)
@@ -28,6 +33,8 @@ func DetectProvider(url string) Provider {
 		return ProviderGitLab
 	case strings.Contains(lower, "bitbucket.org"):
 		return ProviderBitbucket
+	case isHarnessURL(lower):
+		return ProviderHarness
 	}
 
 	// Fallback for self-hosted GitLab instances whose hostname carries no
@@ -91,6 +98,15 @@ func glabConfigPath() string {
 		return ""
 	}
 	return filepath.Join(home, ".config", "glab-cli", "config.yml")
+}
+
+func isHarnessURL(lower string) bool {
+	// Match any harness.io host (git.harness.io, git0.harness.io, app.harness.io, ...).
+	if strings.Contains(lower, ".harness.io") {
+		return true
+	}
+	host := strings.ToLower(strings.TrimSpace(os.Getenv(HarnessHostEnv)))
+	return host != "" && strings.Contains(lower, host)
 }
 
 func (p Provider) CLIName() string {

@@ -20,6 +20,9 @@ func TestDetectProvider(t *testing.T) {
 		{"https://gitlab.com/user/repo.git", ProviderGitLab},
 		{"https://gitlab.mycorp.com/group/repo.git", ProviderGitLab},
 		{"https://bitbucket.org/user/repo.git", ProviderBitbucket},
+		{"https://git.harness.io/acct/org/proj/repo.git", ProviderHarness},
+		{"https://git0.harness.io/l7B_kbSEQD2wjrM7PShm5w/PROD/Harness_Commons/harness-ti.git", ProviderHarness},
+		{"https://app.harness.io/gateway/code/git/acct/org/proj/repo.git", ProviderHarness},
 		{"https://example.com/user/repo.git", ProviderUnknown},
 	}
 
@@ -94,5 +97,13 @@ func TestDetectProvider_GlabConfigMalformedFailsClosed(t *testing.T) {
 	writeGlabConfig(t, "this: is: not: valid: yaml: ::::\n\t- broken")
 	if got := DetectProvider("https://selfhosted.example.com/group/repo.git"); got != ProviderUnknown {
 		t.Errorf("DetectProvider(malformed glab config) = %q, want %q", got, ProviderUnknown)
+	}
+}
+
+func TestDetectProvider_HarnessHostEnv(t *testing.T) {
+	t.Setenv(HarnessHostEnv, "code.acme-harness.internal")
+	got := DetectProvider("https://code.acme-harness.internal/acct/org/proj/repo.git")
+	if got != ProviderHarness {
+		t.Fatalf("self-hosted detection: got %q, want %q", got, ProviderHarness)
 	}
 }

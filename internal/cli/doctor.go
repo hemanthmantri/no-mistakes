@@ -53,6 +53,17 @@ func newDoctorCmd() *cobra.Command {
 					ok("gh            ", "ok")
 				}
 
+				if _, err := exec.LookPath("harness"); err != nil {
+					warn("harness       ", "not found "+sDim.Render("(optional, needed for Harness Code PRs)"))
+				} else {
+					out, err := exec.Command("harness", "--version").Output()
+					if err != nil {
+						ok("harness       ", "ok")
+					} else {
+						ok("harness       ", strings.TrimSpace(string(out)))
+					}
+				}
+
 				p, err := paths.New()
 				if err != nil {
 					fail("data directory", fmt.Sprintf("error resolving paths (%v)", err))

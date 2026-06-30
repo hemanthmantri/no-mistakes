@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/kunchenguid/no-mistakes/internal/bitbucket"
+	"github.com/kunchenguid/no-mistakes/internal/harness"
 	"github.com/kunchenguid/no-mistakes/internal/pipeline"
 	"github.com/kunchenguid/no-mistakes/internal/scm"
 	"github.com/kunchenguid/no-mistakes/internal/scm/github"
@@ -63,6 +64,28 @@ func buildHost(sctx *pipeline.StepContext, provider scm.Provider) (scm.Host, str
 			return nil, err.Error()
 		}
 		return bitbucket.NewHost(client, repo), ""
+	case scm.ProviderHarness:
+		if sctx.Repo.ForkURL != "" {
+			return nil, "fork PR routing for Harness is not implemented"
+		}
+		repo, err := harness.ParseRepoRef(sctx.Repo.UpstreamURL)
+		if err != nil {
+			return nil, err.Error()
+		}
+		// Prefer the CLI (no env vars needed); fall back to REST when the CLI
+		// isn't installed/authenticated or its profile points at a different
+		// account.
+		if harness.CLIAvailable() {
+			cli := harness.NewCLIClient(cmdFactory)
+			if acct := cli.AccountID(sctx.Ctx); acct == "" || acct == repo.Account {
+				return harness.NewHost(cli, repo), ""
+			}
+		}
+		restClient, err := harness.NewClientFromEnv(sctx.Env)
+		if err != nil {
+			return nil, fmt.Sprintf("%s (or run `harness auth login` for account %q)", err.Error(), repo.Account)
+		}
+		return harness.NewHost(restClient, repo), ""
 	default:
 		return nil, fmt.Sprintf("provider %s is not supported yet", provider)
 	}

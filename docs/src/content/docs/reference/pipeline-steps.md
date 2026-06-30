@@ -154,16 +154,17 @@ Creates or updates a pull request.
 
 **Skipped when:**
 - The branch is the default branch
-- The upstream host is not GitHub, GitLab, or Bitbucket Cloud (`bitbucket.org`)
+- The upstream host is not GitHub, GitLab, Bitbucket Cloud (`bitbucket.org`), or Harness Code (`*.harness.io` or `HARNESS_HOST`)
 - The provider CLI (`gh` or `glab`) is not installed for GitHub or GitLab
 - The provider CLI is not authenticated for GitHub or GitLab
 - Bitbucket Cloud credentials are missing (`NO_MISTAKES_BITBUCKET_EMAIL` or `NO_MISTAKES_BITBUCKET_API_TOKEN`)
-- A legacy or manually edited GitLab or Bitbucket repo record has `fork_url` set, because fork MR/PR routing is currently GitHub-only
+- For Harness Code, no auth route is usable: the `harness` CLI is not on `PATH` (or its active profile points at a different account than the repo) AND `HARNESS_API_KEY` is unset (the step logs a manual compare URL before skipping)
+- A legacy or manually edited GitLab, Bitbucket, or Harness repo record has `fork_url` set, because fork MR/PR routing is currently GitHub-only
 
 **Behavior:**
 - Checks for an existing PR on the branch
 - If one exists, updates it. If not, creates a new one.
-- Uses the provider CLI for GitHub/GitLab and the Bitbucket API for Bitbucket Cloud
+- Uses the provider CLI for GitHub/GitLab, the Bitbucket API for Bitbucket Cloud, and the Harness Code REST API for Harness
 - For GitHub fork routing, keeps `gh --repo` pointed at the parent repository from `origin`, checks existing PRs with the bare branch name, filters matching PRs by head owner, and creates PRs with `--head <fork-owner>:<branch>`
 - PR title: agent-generated with user intent when available, in conventional commit format (`type(scope): description` or `type: description`); user-facing product impact should use `feat` or `fix` so release automation can pick it up; when a scope is used, it should be the primary affected real module/package from the changed paths and kept broad rather than file-level
 - PR body includes a `## Intent` section when user intent is available, an agent-authored `## What Changed`, and regenerated `## Risk Assessment`, `## Testing`, and `## Pipeline` sections from recorded step results and rounds; auto-fix results in `## Pipeline` render as an issue -> fix -> verification narrative using captured fix summaries, re-check success text, and any still-open findings
@@ -176,11 +177,12 @@ Stores the PR URL in the database and streams it to the TUI.
 
 Monitors PR health after creation and auto-fixes CI failures. Mergeability polling and merge-conflict handling now apply to both GitHub and GitLab.
 
-**Active for GitHub, GitLab, and Bitbucket Cloud (`bitbucket.org`)**.
+**Active for GitHub, GitLab, and Bitbucket Cloud (`bitbucket.org`)**. Harness Code skips this step until check/mergeability APIs are wired up.
 
 - GitHub requires `gh` CLI, installed and authenticated.
 - GitLab requires `glab` CLI, installed and authenticated.
 - Bitbucket Cloud requires `NO_MISTAKES_BITBUCKET_EMAIL` and `NO_MISTAKES_BITBUCKET_API_TOKEN`.
+- Harness Code skips with "Harness CI monitoring is not implemented" - the PR step still runs.
 
 **Behavior:**
 - Polls provider CI status at increasing intervals: every 30s for the first 5 minutes, every 60s for 5-15 minutes, every 120s after that

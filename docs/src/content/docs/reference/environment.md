@@ -56,6 +56,50 @@ Override the Bitbucket Cloud API base URL.
 
 Useful for mocking in tests or pointing at a proxy.
 
+## `HARNESS_API_KEY`
+
+Harness Code PAT (or SAT) used for PR create/update/state. `git push` uses your local git credentials and doesn't need it.
+
+| | |
+|---|---|
+| Type | `string` |
+| Default | (none; Harness PR step skips and prints a manual compare URL when unset) |
+
+When the key has the `pat.<accountId>.<rest>` / `sat.<accountId>.<rest>` shape, the account id is derived from the prefix and `HARNESS_ACCOUNT_ID` is optional. See [Provider Integration](/no-mistakes/guides/provider-integration/#harness-code).
+
+## `HARNESS_ACCOUNT_ID`
+
+Harness account id, used as `accountIdentifier` / `routingId` on every API call.
+
+| | |
+|---|---|
+| Type | `string` |
+| Default | derived from the `pat.<accountId>.` / `sat.<accountId>.` prefix of `HARNESS_API_KEY` |
+
+Required only if your key isn't in that prefixed shape.
+
+## `HARNESS_BASE_URL`
+
+Override the Harness API base URL.
+
+| | |
+|---|---|
+| Type | `URL` |
+| Default | `https://app.harness.io` |
+
+Useful for dedicated tenants or test fixtures.
+
+## `HARNESS_HOST`
+
+Classify a custom hostname as Harness Code in `DetectProvider`.
+
+| | |
+|---|---|
+| Type | `string` (host, no scheme) |
+| Default | (none) |
+
+Set this for self-hosted Harness installs whose host isn't `*.harness.io`. Any URL whose hostname matches is treated as Harness Code.
+
 ## `NO_MISTAKES_NO_UPDATE_CHECK`
 
 Disable background update checks.
