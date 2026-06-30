@@ -25,7 +25,7 @@ You need:
 
 - `git`
 - One supported agent binary (`claude`, `codex`, `acli` for Rovo Dev, `opencode`, `pi`, or `copilot`), or a separately installed `acpx` binary for `agent: acp:<target>`
-- For PRs and CI: `gh` (GitHub), `glab` (GitLab), or Bitbucket Cloud credentials
+- For PRs and CI: `gh` (GitHub), `glab` (GitLab), Bitbucket Cloud credentials, or `harness` CLI / `HARNESS_API_KEY` (Harness Code; PR only, CI/checks not yet supported)
 
 For ACP agents, verify `acpx` or `acpx_path` separately because `no-mistakes doctor` does not validate ACP targets.
 

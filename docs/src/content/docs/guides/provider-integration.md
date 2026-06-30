@@ -1,10 +1,11 @@
 ---
 title: Provider Integration
-description: Set up GitHub, GitLab, or Bitbucket Cloud for PR creation and CI monitoring.
+description: Set up GitHub, GitLab, Bitbucket Cloud, or Harness Code for PR creation and CI monitoring.
 ---
 
-The PR and CI steps need to talk to your git host. Three hosts are supported:
-GitHub, GitLab, and Bitbucket Cloud (`bitbucket.org`). Everything else
+The PR and CI steps need to talk to your git host. Four hosts are supported:
+GitHub, GitLab, Bitbucket Cloud (`bitbucket.org`), and Harness Code
+(`*.harness.io` SaaS plus self-hosted via `HARNESS_HOST`). Everything else
 short-circuits the PR and CI steps with `skipped`.
 
 Provider integration is optional for the local gate. You only need it for the
@@ -24,12 +25,12 @@ What you do not get is PR automation and CI monitoring.
 
 ## What each step needs
 
-| Step | GitHub | GitLab | Bitbucket Cloud |
-|---|---|---|---|
-| **PR** (create/update) | `gh` CLI, authenticated | `glab` CLI, authenticated | `NO_MISTAKES_BITBUCKET_EMAIL` + `NO_MISTAKES_BITBUCKET_API_TOKEN` |
-| **CI** (polling, auto-fix) | `gh` CLI | `glab` CLI | same env vars |
-| **Merge conflict auto-fix** | `gh` CLI | `glab` CLI | not supported |
-| **Mergeability polling** | `gh` CLI | `glab` CLI | not supported |
+| Step | GitHub | GitLab | Bitbucket Cloud | Harness Code |
+|---|---|---|---|---|
+| **PR** (create/update) | `gh` CLI, authenticated | `glab` CLI, authenticated | `NO_MISTAKES_BITBUCKET_EMAIL` + `NO_MISTAKES_BITBUCKET_API_TOKEN` | `harness` CLI logged in to the repo's account, OR `HARNESS_API_KEY` |
+| **CI** (polling, auto-fix) | `gh` CLI | `glab` CLI | same env vars | not supported yet |
+| **Merge conflict auto-fix** | `gh` CLI | `glab` CLI | not supported | not supported |
+| **Mergeability polling** | `gh` CLI | `glab` CLI | not supported | not supported |
 
 ## What changes when provider wiring is present
 
@@ -136,6 +137,63 @@ Get an API token from [Bitbucket account settings](https://bitbucket.org/account
 
 These are GitHub and GitLab only right now.
 
+## Harness Code
+
+`no-mistakes` talks to Harness Code two ways and picks the first one that works at runtime — no flag, no config:
+
+1. **`harness` CLI** ([`harness/harness-unified-cli`](https://github.com/harness/harness-unified-cli)). If `harness` is on `PATH` and its active profile's account matches the repo's account, PR commands go through the CLI and pick up creds from `~/.harness/credentials` — no env vars needed.
+2. **REST + `HARNESS_API_KEY`**. Used when the CLI isn't installed, or when the CLI profile points at a different account than the repo. The PR step skips with a one-line hint when neither is usable.
+
+`git push` itself only needs your local git credentials — `HARNESS_API_KEY` and the CLI are both **optional** for pushing.
+
+### Install the CLI (recommended)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/harness/harness-unified-cli/main/install.sh | sh
+harness auth login
+```
+
+When the CLI is logged into a profile in the same account as the repo, the PR step uses it transparently. To target a non-default account for a specific repo, log into a named profile and export it for the daemon:
+
+```sh
+harness auth login --profile work
+export HARNESS_PROFILE=work
+```
+
+### REST fallback (works without the CLI)
+
+```sh
+export HARNESS_API_KEY=pat.<accountId>.<rest>
+
+# Optional overrides:
+export HARNESS_ACCOUNT_ID=<accountId>          # required only if your key is not a "pat.<accountId>." token
+export HARNESS_BASE_URL=https://app.harness.io # defaults to app.harness.io; override for dedicated tenants
+export HARNESS_HOST=git.my-company.com         # classify a self-hosted host as Harness Code in DetectProvider
+```
+
+Supported clone/UI URL shapes:
+
+- `https://git.harness.io/<account>/<org>/<project>/<repo>[.git]`
+- `https://app.harness.io/gateway/code/git/<account>/<org>/<project>/<repo>[.git]`
+- sharded SaaS hosts like `git0.harness.io` (UI links resolve to the matching `harness0.harness.io` UI host)
+- any host matching `HARNESS_HOST` for self-hosted installs
+
+`git push` uses your local git credentials and doesn't need `HARNESS_API_KEY`.
+
+**What you get:**
+
+- PR creation and update
+- PR state (open/merged/closed) polling, so the rest of the pipeline knows when a PR has landed
+
+**What you don't get (yet):**
+
+- CI / check polling and the auto-fix loop
+- Mergeability polling
+- Merge-conflict auto-fix
+- Fork PR routing (the underlying API supports `source_repo_ref`, but URL parsing + routing isn't wired end to end yet)
+
+When `HARNESS_API_KEY` isn't set, the PR step skips and prints a clickable compare URL so you can open the PR by hand.
+
 ## Self-hosted GitHub/GitLab
 
 Self-hosted GitHub Enterprise and self-hosted GitLab instances work through the same `gh` and `glab` CLIs. Authenticate the CLI against your instance (`gh auth login --hostname your-ghe.example.com`, `glab auth login --hostname gitlab.example.com`) and `no-mistakes` will route through the CLI as usual.
@@ -148,7 +206,7 @@ The GitLab backend is pinned against `glab v1.5x`. Self-hosted detection and the
 
 ## Unsupported hosts
 
-If your upstream isn't GitHub, GitLab, or Bitbucket Cloud:
+If your upstream isn't GitHub, GitLab, Bitbucket Cloud, or Harness Code:
 
 - The **push** step still runs - `no-mistakes` pushes through git to the configured target like any other remote.
 - The **PR** step marks itself as `skipped`.
@@ -162,7 +220,7 @@ Everything before push (rebase, review, test, document, lint) still works regard
 no-mistakes doctor
 ```
 
-`doctor` currently checks `gh` availability. For GitLab, confirm `glab` is installed and authenticated. For Bitbucket Cloud, confirm the two env vars are set in the environment the daemon runs under.
+`doctor` currently checks `gh` availability. For GitLab, confirm `glab` is installed and authenticated. For Bitbucket Cloud, confirm the two env vars are set in the environment the daemon runs under. For Harness Code, confirm `HARNESS_API_KEY` (and `HARNESS_ACCOUNT_ID` / `HARNESS_BASE_URL` / `HARNESS_HOST` as needed) are set in that same environment.
 
 :::note
 When the daemon runs through a managed service (launchd, systemd, Task Scheduler), it reloads environment from your login shell on macOS and Linux so `gh` auth and `NO_MISTAKES_BITBUCKET_*` vars are picked up, and it augments `PATH` with common binary directories. If credentials or PATH-derived tools are missing, check `~/.no-mistakes/logs/daemon.log` for a login-shell environment resolution warning. On Windows it reuses the current process environment.

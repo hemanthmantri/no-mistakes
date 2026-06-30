@@ -10,6 +10,7 @@ import (
 	"github.com/kunchenguid/no-mistakes/internal/conventional"
 	"github.com/kunchenguid/no-mistakes/internal/db"
 	"github.com/kunchenguid/no-mistakes/internal/git"
+	"github.com/kunchenguid/no-mistakes/internal/harness"
 	"github.com/kunchenguid/no-mistakes/internal/pipeline"
 	"github.com/kunchenguid/no-mistakes/internal/scm"
 	"github.com/kunchenguid/no-mistakes/internal/types"
@@ -49,6 +50,11 @@ func (s *PRStep) Execute(sctx *pipeline.StepContext) (*pipeline.StepOutcome, err
 	host, skipReason := buildHost(sctx, provider)
 	if host == nil {
 		sctx.Log(fmt.Sprintf("skipping PR creation: %s", skipReason))
+		if provider == scm.ProviderHarness {
+			if ref, err := harness.ParseRepoRef(sctx.Repo.UpstreamURL); err == nil {
+				sctx.Log(fmt.Sprintf("open a PR manually: %s", harness.CompareURL(sctx.Repo.UpstreamURL, ref, branch, sctx.Repo.DefaultBranch)))
+			}
+		}
 		return &pipeline.StepOutcome{Skipped: true}, nil
 	}
 	if err := host.Available(ctx); err != nil {

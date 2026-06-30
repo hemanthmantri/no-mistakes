@@ -73,6 +73,13 @@ func (s *CIStep) Execute(sctx *pipeline.StepContext) (*pipeline.StepOutcome, err
 		sctx.Log(fmt.Sprintf("skipping CI: %v", err))
 		return &pipeline.StepOutcome{Skipped: true}, nil
 	}
+	if provider == scm.ProviderHarness {
+		// Harness CI/checks integration is a follow-up; the Harness host
+		// returns ErrUnsupported from GetChecks/GetMergeableState. Skip
+		// rather than loop on warnings until the timeout expires.
+		sctx.Log("skipping CI: Harness CI monitoring is not implemented")
+		return &pipeline.StepOutcome{Skipped: true}, nil
+	}
 
 	// Get PR URL from run record
 	prURL := ""
